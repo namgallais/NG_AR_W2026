@@ -1,5 +1,5 @@
-#ifndef POTENTIAL_FIELD__POTENTIALFIELD_HPP
-#define POTENTIAL_FIELD__POTENTIALFIELD_HPP
+#ifndef POTENTIAL_FIELD__PotentialField2d_HPP
+#define POTENTIAL_FIELD__PotentialField2d_HPP
 
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/pose_array.hpp"
@@ -9,10 +9,10 @@
 #include "highlevel_interfaces/srv/move2d.hpp"
 #include <Eigen/Dense>
 
-class PotentialField : public rclcpp::Node
+class PotentialField2d : public rclcpp::Node
 {
 public:
-  PotentialField();
+  PotentialField2d();
 
 private:
   /* ---------- Callbacks ---------- */
@@ -45,5 +45,5 @@ private:
   const double max_vel = 1.0;
 };
 
-#endif  // POTENTIAL_FIELD__POTENTIALFIELD_HPP
+#endif  // POTENTIAL_FIELD__PotentialField2d_HPP
 

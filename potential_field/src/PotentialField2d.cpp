@@ -1,4 +1,4 @@
-#include "potential_field/PotentialField.hpp"
+#include "potential_field/PotentialField2d.hpp"
 
 #include <cmath>
 #include <chrono>
@@ -6,7 +6,7 @@
 using namespace std::chrono_literals;
 
 /* ========== Constructor ========== */
-PotentialField::PotentialField()
+PotentialField2d::PotentialField2d()
 : Node("potential_field_2d"),
   current_pose(Eigen::Vector2d::Zero()),
   target_pose(Eigen::Vector2d::Zero()),
@@ -18,7 +18,7 @@ PotentialField::PotentialField()
   pose_sub = this->create_subscription<geometry_msgs::msg::PoseArray>(
     "/husky/platform/pose",
     10,
-    std::bind(&PotentialField::pose_callback, this, std::placeholders::_1)
+    std::bind(&PotentialField2d::pose_callback, this, std::placeholders::_1)
   );
 
   velocity_pub = this->create_publisher<std_msgs::msg::Float64MultiArray>(
@@ -31,7 +31,7 @@ PotentialField::PotentialField()
     this->create_service<highlevel_interfaces::srv::Move2d>(
       "/planner/move_to",
       std::bind(
-        &PotentialField::move_to_callback,
+        &PotentialField2d::move_to_callback,
         this,
         std::placeholders::_1,
         std::placeholders::_2
@@ -40,7 +40,7 @@ PotentialField::PotentialField()
 
   timer = this->create_wall_timer(
     2ms,
-    std::bind(&PotentialField::update, this)
+    std::bind(&PotentialField2d::update, this)
   );
 
   RCLCPP_INFO(this->get_logger(), "Potential field planner started");
@@ -48,7 +48,7 @@ PotentialField::PotentialField()
 
 /* ================= CALLBACKS ================= */
 
-void PotentialField::pose_callback(
+void PotentialField2d::pose_callback(
   const geometry_msgs::msg::PoseArray::SharedPtr msg)
 {
   current_pose(0) = msg->poses[5].position.x;
@@ -58,7 +58,7 @@ void PotentialField::pose_callback(
   RCLCPP_INFO_ONCE(this->get_logger(), "First pose callback");
 }
 
-void PotentialField::move_to_callback(
+void PotentialField2d::move_to_callback(
   const std::shared_ptr<highlevel_interfaces::srv::Move2d::Request> request,
   std::shared_ptr<highlevel_interfaces::srv::Move2d::Response> response)
 {
@@ -76,7 +76,7 @@ void PotentialField::move_to_callback(
   response->success = true;
 }
 
-void PotentialField::update()
+void PotentialField2d::update()
 {
   std_msgs::msg::Float64MultiArray velocity_msg;
   std_msgs::msg::Bool done_msg;
