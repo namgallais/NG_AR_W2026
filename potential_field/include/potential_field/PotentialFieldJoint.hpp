@@ -23,6 +23,8 @@ private:
   std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
   void update();
+  
+  bool readParameters();
 
   /* ---------- ROS Interfaces ---------- */
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr pose_sub;
@@ -39,6 +41,11 @@ private:
 
   bool has_pose;
   bool has_target;
+  int all_done;
+  
+  /*----------- Messages ----------*/
+  std_msgs::msg::Float64MultiArray velocity_msg;
+  std_msgs::msg::Bool done_msg;
 
   /* ---------- Parameters ---------- */
   double k_att;

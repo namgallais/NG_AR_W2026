@@ -13,46 +13,23 @@ PotentialFieldJoint::PotentialFieldJoint()
   difference(Eigen::VectorXd::Zero(7)),
   velocity(Eigen::VectorXd::Zero(7)),
   has_pose(false),
-  has_target(false)
+  has_target(false),
+  all_done(0)
 {
+
+  done_msg.data = true;
+  velocity_msg.data.resize(7);
+  velocity_msg.data.assign(7, 0.0);
   
   /************PARAMETERS***************/
   
-  this->declare_parameter<double>("k_att", 0.0);
-  if (!this->get_parameter("k_att", k_att)) {
-  RCLCPP_ERROR(rclcpp::get_logger("PotentialFieldJoint"), "parameter k_att not found");
-  rclcpp::shutdown();
-  }
   
-  this->declare_parameter<double>("done_threshold", 0.0);
-  if (!this->get_parameter("done_threshold", done_threshold)) {
-  RCLCPP_ERROR(rclcpp::get_logger("PotentialFieldJoint"), "parameter done_threshold not found");
-  rclcpp::shutdown();
-  }
-  
-  std::vector<double> param_list; //Vector parameters
-  int param_size;
-  
-  this->declare_parameter<std::vector<double>>("default_joint_position", std::vector<double>{});
-  if (!this->get_parameter("default_joint_position", param_list)) {
-  RCLCPP_ERROR(rclcpp::get_logger("PotentialFieldJoint"), "parameter default_joint_position not found");
-  rclcpp::shutdown();
-  }
-  param_size = param_list.size();
-  default_joint_position = Eigen::VectorXd::Zero(param_size);
-  for (int i = 0; i < param_size; ++i) {
-  default_joint_position(i) = param_list.at(i);
-  }
-  
-  this->declare_parameter<std::vector<double>>("maximum_joint_velocity", std::vector<double>{});
-  if (!this->get_parameter("maximum_joint_velocity", param_list)) {
-  RCLCPP_ERROR(rclcpp::get_logger("PotentialFieldJoint"), "parameter maximum_joint_velocity not found");
-  rclcpp::shutdown();
-  }
-  param_size = param_list.size();
-  maximum_joint_velocity = Eigen::VectorXd::Zero(param_size);
-  for (int i = 0; i < param_size; ++i) {
-  maximum_joint_velocity(i) = param_list.at(i);
+  if (!readParameters()) {
+        RCLCPP_INFO(this->get_logger(), "Cannot read parameters");
+        rclcpp::shutdown() ; // shutdown the node, if it really needs some parameters
+  } 
+    else {
+        RCLCPP_INFO(this->get_logger(), "Successfully read parameters");
   }
   
 
@@ -107,16 +84,15 @@ const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
   target_pose = default_joint_position;
   has_target = true;
   
+  RCLCPP_INFO_STREAM_ONCE(this->get_logger(),
+        "target_pose: " << target_pose.transpose());
+  
   response->success = true;
   response->message = "Homing started";
 }
 
 void PotentialFieldJoint::update()
 {
-  std_msgs::msg::Float64MultiArray velocity_msg;
-  std_msgs::msg::Bool done_msg;
-
-  velocity_msg.data.resize(7);
 
   if (!has_pose || !has_target) {
     velocity_msg.data.assign(7, 0.0);
@@ -131,11 +107,11 @@ void PotentialFieldJoint::update()
 
   difference = target_pose - current_pose;
   velocity = k_att * difference;
-  int all_done = 0;
+  all_done = 0;
   
-  for(int i = 0; i < difference.size(); i++) {
-    if (difference(i) < done_threshold) {
-      velocity_msg.data[i] = 0.0;
+  for(int i = 0; i < 7; i++) {
+    if (difference(i) <= done_threshold) {
+      velocity(i) = 0.0;
       all_done+=1;
 
     }
@@ -143,21 +119,84 @@ void PotentialFieldJoint::update()
     if (velocity(i) > maximum_joint_velocity(i)) {
         velocity(i) = maximum_joint_velocity(i);
     }
+    if (velocity(i) < -maximum_joint_velocity(i)) {
+        velocity(i) = -maximum_joint_velocity(i);
+    }
     
     velocity_msg.data[i] = velocity(i);
     
   }
   
-  if(all_done == difference.size()){
+  velocity_pub->publish(velocity_msg);
+  
+  if(all_done == 7){
       done_msg.data = true;
-      velocity_pub->publish(velocity_msg);
       done_pub->publish(done_msg);
       return;
   }
   
   done_msg.data = false;
-
-  velocity_pub->publish(velocity_msg);
   done_pub->publish(done_msg);
+}
+
+/******************* READ PARAMETERS *************/
+
+bool PotentialFieldJoint::readParameters()
+{
+  std::vector<double> param_list;
+
+  this->declare_parameter("k_att", 5.0);
+  this->declare_parameter("done_threshold", 0.05);
+  this->declare_parameter("default_joint_position", std::vector<double>{0.0, 1.54, 0.0, 1.54, 0.0, 1.54, 0.0});
+  this->declare_parameter("maximum_joint_velocity", std::vector<double>{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
+  
+  /* -------- k_att -------- */  
+  if (this->get_parameter("k_att", k_att)) {
+    RCLCPP_INFO_STREAM(this->get_logger(),
+      "k_att = " << k_att);
+  } else {
+    RCLCPP_ERROR_STREAM(this->get_logger(),
+      "Could not get k_att");
+  }
+
+
+  /* -------- done_threshold -------- */
+  if (this->get_parameter("done_threshold", done_threshold)) {
+    RCLCPP_INFO_STREAM(this->get_logger(),
+      "done_threshold = " << done_threshold);
+  } else {
+    RCLCPP_ERROR_STREAM(this->get_logger(),
+      "Could not get done_threshold");
+  }
+
+
+  /* -------- default_joint_position -------- */
+  if (!this->get_parameter("default_joint_position", param_list)) {
+        RCLCPP_WARN(this->get_logger(), "Cannot read default_joint_position");
+    }
+    else {
+        default_joint_position = Eigen::VectorXd::Zero(param_list.size());
+        for (int i = 0; i < (int)param_list.size(); i++) {
+            default_joint_position(i) = param_list.at(i);
+        }
+    }
+    RCLCPP_INFO_STREAM(this->get_logger(),
+        "default_joint_position: " << default_joint_position.transpose());
+
+
+  /* -------- maximum_joint_velocity -------- */
+  if (!this->get_parameter("maximum_joint_velocity", param_list)) {
+        RCLCPP_WARN(this->get_logger(), "Cannot read maximum_joint_velocity");
+    }
+    else {
+        maximum_joint_velocity = Eigen::VectorXd::Zero(param_list.size());
+        for (int i = 0; i < (int)param_list.size(); i++) {
+            maximum_joint_velocity(i) = param_list.at(i);
+        }
+    }
+    RCLCPP_INFO_STREAM(this->get_logger(),
+        "maximum_joint_velocity: " << maximum_joint_velocity.transpose());
+
+  return true;
 }
 
