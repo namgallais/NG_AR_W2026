@@ -110,7 +110,7 @@ void PotentialFieldJoint::update()
   all_done = 0;
   
   for(int i = 0; i < 7; i++) {
-    if (difference(i) <= done_threshold) {
+    if (std::abs(difference(i)) <= done_threshold) {
       velocity(i) = 0.0;
       all_done+=1;
 
