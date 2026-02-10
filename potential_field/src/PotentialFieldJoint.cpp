@@ -20,6 +20,8 @@ PotentialFieldJoint::PotentialFieldJoint()
   done_msg.data = true;
   velocity_msg.data.resize(7);
   velocity_msg.data.assign(7, 0.0);
+  ref_velocity_msg.data.resize(7);
+  ref_velocity_msg.data.assign(7, 0.0);
   
   /************PARAMETERS***************/
   
@@ -46,6 +48,9 @@ PotentialFieldJoint::PotentialFieldJoint()
   done_pub = this->create_publisher<std_msgs::msg::Bool>(
     "/planner/done", 10);
     
+  ref_velocity_pub = this->create_publisher<std_msgs::msg::Float64MultiArray>(
+  "/gen3/reference/velocity", 10);
+    
   homing_service = this->create_service<std_srvs::srv::Trigger>(
       "/planner/homing",
       std::bind(
@@ -68,7 +73,7 @@ PotentialFieldJoint::PotentialFieldJoint()
 
 void PotentialFieldJoint::pose_callback(
   const sensor_msgs::msg::JointState::SharedPtr msg)
-{
+{  
   current_pose = Eigen::Map<Eigen::VectorXd>(msg->position.data(), msg->position.size());
   has_pose = true;
 
@@ -94,7 +99,7 @@ const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
 void PotentialFieldJoint::update()
 {
 
-  if (!has_pose || !has_target) {
+  if (!has_pose) {
     velocity_msg.data.assign(7, 0.0);
     done_msg.data = true;
 
@@ -104,7 +109,48 @@ void PotentialFieldJoint::update()
     RCLCPP_INFO_ONCE(this->get_logger(), "First update");
     return;
   }
+  
+  ref_velocity_compute(); //compute if has pose
+  
+  if(!has_target){
+    velocity_msg.data.assign(7, 0.0);
+    done_msg.data = true;
 
+    velocity_pub->publish(velocity_msg);
+    done_pub->publish(done_msg);
+    return;
+  }
+  
+  velocity_compute(); //compute if has pose and target
+}
+
+void PotentialFieldJoint::ref_velocity_compute(){
+  
+  difference = default_joint_position - current_pose;
+  velocity = k_att * difference;
+  
+  for(int i = 0; i < 7; i++) {
+    if (std::abs(difference(i)) <= done_threshold) {
+      velocity(i) = 0.0;
+
+    }
+    
+    if (velocity(i) > maximum_joint_velocity(i)) {
+        velocity(i) = maximum_joint_velocity(i);
+    }
+    if (velocity(i) < -maximum_joint_velocity(i)) {
+        velocity(i) = -maximum_joint_velocity(i);
+    }
+    
+    ref_velocity_msg.data[i] = velocity(i);
+    
+  }
+  
+  ref_velocity_pub->publish(ref_velocity_msg);
+}
+
+void PotentialFieldJoint::velocity_compute(){
+  
   difference = target_pose - current_pose;
   velocity = k_att * difference;
   all_done = 0;

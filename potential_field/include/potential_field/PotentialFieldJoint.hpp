@@ -25,12 +25,18 @@ private:
   void update();
   
   bool readParameters();
+  
+  void ref_velocity_compute();
+  void velocity_compute();
 
   /* ---------- ROS Interfaces ---------- */
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr pose_sub;
   rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr velocity_pub;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr done_pub;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr homing_service;
+  
+  rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr ref_velocity_pub;
+  
   rclcpp::TimerBase::SharedPtr timer;
 
   /* ---------- Internal State ---------- */
@@ -45,6 +51,7 @@ private:
   
   /*----------- Messages ----------*/
   std_msgs::msg::Float64MultiArray velocity_msg;
+  std_msgs::msg::Float64MultiArray ref_velocity_msg;
   std_msgs::msg::Bool done_msg;
 
   /* ---------- Parameters ---------- */

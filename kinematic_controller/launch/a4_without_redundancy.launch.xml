@@ -1,0 +1,17 @@
+<launch>
+
+  <node pkg="kinematic_controller"
+        exec="kinematic_controller"
+        name="kinematic_controller"
+        output="screen">
+
+    <param name="urdf_file_name"
+           value="$(find-pkg-share kortex_description)/robots/gen3.urdf"/>
+
+    <param name="use_sim_time" value="true"/>
+
+  </node>
+
+  <include file="$(find-pkg-share potential_field)/launch/potential_field_task.launch.xml" />
+
+</launch>

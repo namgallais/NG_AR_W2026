@@ -1,0 +1,7 @@
+potential_field_joint:
+  ros__parameters:
+    publish_rate: 500
+    k_att: 5.0
+    default_joint_position: [0.0, 0.6, 0.0, 0.6, 0.0, 0.6, 0.0 ]
+    maximum_joint_velocity: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    done_threshold: 0.05

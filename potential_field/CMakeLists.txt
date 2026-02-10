@@ -24,6 +24,11 @@ add_executable(potential_field_joint
   src/PotentialFieldJoint.cpp
 )
 
+add_executable(potential_field_task
+  src/potential_field_task.cpp
+  src/PotentialFieldTask.cpp
+)
+
 
 target_include_directories(potential_field_2d PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -31,6 +36,11 @@ target_include_directories(potential_field_2d PUBLIC
 )
 
 target_include_directories(potential_field_joint PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+target_include_directories(potential_field_task PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
@@ -49,11 +59,22 @@ ament_target_dependencies(potential_field_joint
   sensor_msgs
 )
 
+ament_target_dependencies(potential_field_task
+  rclcpp
+  std_msgs
+  geometry_msgs
+  highlevel_interfaces
+)
+
 target_link_libraries(potential_field_2d
   Eigen3::Eigen
 )
 
 target_link_libraries(potential_field_joint
+  Eigen3::Eigen
+)
+
+target_link_libraries(potential_field_task
   Eigen3::Eigen
 )
 
@@ -65,8 +86,17 @@ install(TARGETS potential_field_joint
   DESTINATION lib/${PROJECT_NAME}
 )
 
+install(TARGETS potential_field_task
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 install(DIRECTORY include
   DESTINATION include
+)
+
+install(
+  DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
 )
 
 ament_package()

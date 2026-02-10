@@ -1,0 +1,223 @@
+#include "kinematic_controller/KinematicController.hpp"
+
+#include <cmath>
+#include <chrono>
+
+using namespace std::chrono_literals;
+
+/* ========== Constructor ========== */
+KinematicController::KinematicController()
+: Node("kinematic_controller"),
+  current_joint_state(Eigen::VectorXd::Zero(7)),
+  current_joint_velocity(Eigen::VectorXd::Zero(7)),
+  has_joint_state(false),
+  end_eff_pose(Eigen::Vector3d::Zero()),
+  end_eff_linear_velocity(Eigen::Vector3d::Zero()),
+  end_eff_angular_velocity(Eigen::Vector3d::Zero()),
+  end_eff_desired_velocity(Eigen::Vector3d::Zero()),
+  desired_joint_velocity_vector(Eigen::VectorXd::Zero(7))
+{
+
+  desired_joint_velocity_msg.data.resize(7);
+  desired_joint_velocity_msg.data.assign(7, 0.0);
+
+/*----------------PARAMETERS----------------*/
+
+  if (!readParameters()) {
+        RCLCPP_INFO(this->get_logger(), "Cannot read parameters");
+        rclcpp::shutdown() ;
+  } 
+    else {
+        RCLCPP_INFO(this->get_logger(), "Successfully read parameters");
+  }
+
+/*----------------Pinocchio------------*/
+
+  pinocchio::urdf::buildModel(urdf_file_name, model, false);
+  data = pinocchio::Data(model);
+
+  HAND_ID = model.getFrameId("end_effector_link");
+
+  RCLCPP_INFO_STREAM(this->get_logger(),
+    "Model nq: " << model.nq << " nv: " << model.nv);
+  
+  J.resize(6, model.nv);
+  Jv.resize(3, model.nv);
+
+/*---------------PUBLISHER AND SUBSCRIBER---------------*/
+
+// Forward Kinematic to know end-effector pose
+  joint_state_sub = this->create_subscription<sensor_msgs::msg::JointState>(
+    joint_state_topic,
+    10,
+    std::bind(&KinematicController::jointCallback, this, std::placeholders::_1)
+  );
+  
+  pose_pub = this->create_publisher<geometry_msgs::msg::Pose>(
+    pose_topic, 10);      //Pose and Twist pub = foward kinematics from the current_joint_states
+
+  twist_pub = this->create_publisher<geometry_msgs::msg::Twist>(
+    twist_topic, 10);
+
+// Inverse Kinematic to publish joint desired velocity
+  ref_twist_sub = this->create_subscription<geometry_msgs::msg::Twist>(
+  "gen3/reference/twist", 
+  10,
+  std::bind(&KinematicController::twistCallback, this, std::placeholders::_1)
+  );
+  
+  desired_joint_velocity_pub = this->create_publisher<std_msgs::msg::Float64MultiArray>(
+  "gen3/command/joint_velocity", 10);
+
+//500 Hz
+  timer = this->create_wall_timer(
+    2ms,
+    std::bind(&KinematicController::update, this)
+  );
+
+  RCLCPP_INFO(this->get_logger(), "Potential field planner started");
+}
+
+/* ================= CALLBACKS ================= */
+
+void KinematicController::jointCallback(
+  const sensor_msgs::msg::JointState::SharedPtr msg)
+{
+  current_joint_state = Eigen::Map<Eigen::VectorXd>(msg->position.data(), msg->position.size());
+  current_joint_velocity = Eigen::Map<Eigen::VectorXd>(msg->velocity.data(), msg->velocity.size());
+  has_joint_state = true;
+
+  RCLCPP_INFO_ONCE(this->get_logger(), "First joint state callback");
+}
+
+void KinematicController::twistCallback(
+  const geometry_msgs::msg::Twist::SharedPtr msg)
+{
+
+  end_eff_desired_velocity(0) = msg->linear.x;
+  end_eff_desired_velocity(1) = msg->linear.y;
+  end_eff_desired_velocity(2) = msg->linear.z;
+
+
+  RCLCPP_INFO_ONCE(this->get_logger(), "First reference twist callback");
+}
+
+void KinematicController::update( )
+{
+  
+  //Forward Kinematics
+  if (!has_joint_state)
+    return;
+  
+  pinocchio::forwardKinematics(model, data, current_joint_state, current_joint_velocity);
+  pinocchio::updateFramePlacements(model, data);
+  
+  
+  fbk_pose = data.oMf[HAND_ID];
+  
+  end_eff_pose = fbk_pose.translation(); //from pinocchio to eigen
+  
+  pose_msg.position.x = end_eff_pose(0);
+  pose_msg.position.y = end_eff_pose(1);
+  pose_msg.position.z = end_eff_pose(2);
+
+  fbk_twist = pinocchio::getFrameVelocity(model, data, HAND_ID, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED);
+
+  end_eff_linear_velocity = fbk_twist.linear();
+  
+  twist_msg.linear.x = end_eff_linear_velocity(0);
+  twist_msg.linear.y = end_eff_linear_velocity(1);
+  twist_msg.linear.z = end_eff_linear_velocity(2);
+  
+  end_eff_angular_velocity = fbk_twist.angular();
+
+  twist_msg.angular.x = end_eff_angular_velocity(0);
+  twist_msg.angular.y = end_eff_angular_velocity(1);
+  twist_msg.angular.z = end_eff_angular_velocity(2);
+
+  pose_pub->publish(pose_msg);
+  twist_pub->publish(twist_msg);
+  
+  
+  //Inverse Kinematics
+  
+  pinocchio::computeJointJacobians(model, data, current_joint_state);
+  pinocchio::getFrameJacobian(model, data, HAND_ID, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, J);
+  
+  Jv = J.topRows(3); //  Jv   <- linear part (rows 0,1,2)
+  
+  
+  desired_joint_velocity_vector = Jv.completeOrthogonalDecomposition().solve(end_eff_desired_velocity);
+  
+  for(int i = 0; i < 7; i++) {
+  desired_joint_velocity_msg.data[i] = desired_joint_velocity_vector(i);
+  }
+ desired_joint_velocity_pub->publish(desired_joint_velocity_msg);
+}
+
+
+bool KinematicController::readParameters()
+{
+  
+  this->declare_parameter<std::string>("urdf_file_name", "");
+  this->declare_parameter<std::string>("joint_state_topic", "/joint_states");
+  this->declare_parameter<std::string>("pose_topic", "/gen3/feedback/pose");
+  this->declare_parameter<std::string>("twist_topic", "/gen3/feedback/twist");
+  this->declare_parameter<std::string>("with_redundancy", "false");
+
+  
+  /* -------- urdf_file_name -------- */  
+  if (this->get_parameter("urdf_file_name", urdf_file_name)) {
+    RCLCPP_INFO_STREAM(this->get_logger(),
+      "urdf_file_name = " << urdf_file_name);
+  } else {
+    RCLCPP_ERROR_STREAM(this->get_logger(),
+      "Could not get urdf_file_name");
+    return false;
+  }
+  
+   /* -------- joint_state_topic -------- */  
+  if (this->get_parameter("joint_state_topic", joint_state_topic)) {
+    RCLCPP_INFO_STREAM(this->get_logger(),
+      "joint_state_topic = " << joint_state_topic);
+  } else {
+    RCLCPP_ERROR_STREAM(this->get_logger(),
+      "Could not get joint_state_topic");
+    return false;
+  }
+  
+   /* -------- pose_topic -------- */  
+  if (this->get_parameter("pose_topic", pose_topic)) {
+    RCLCPP_INFO_STREAM(this->get_logger(),
+      "pose_topic = " << pose_topic);
+  } else {
+    RCLCPP_ERROR_STREAM(this->get_logger(),
+      "Could not get pose_topic");
+    return false;
+  }
+  
+   /* -------- twist_topic -------- */  
+  if (this->get_parameter("twist_topic", twist_topic)) {
+    RCLCPP_INFO_STREAM(this->get_logger(),
+      "twist_topic = " << twist_topic);
+  } else {
+    RCLCPP_ERROR_STREAM(this->get_logger(),
+      "Could not get twist_topic");
+    return false;
+  }
+  
+   /* -------- with_redundancy -------- */  
+  if (this->get_parameter("with_redundancy", with_redundancy)) {
+    RCLCPP_INFO_STREAM(this->get_logger(),
+      "with_redundancy = " << with_redundancy);
+  } else {
+    RCLCPP_ERROR_STREAM(this->get_logger(),
+      "Could not get with_redundancy");
+    return false;
+  }
+
+
+  return true;
+}
+
+
