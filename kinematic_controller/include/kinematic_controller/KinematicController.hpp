@@ -29,6 +29,7 @@ private:
   bool readParameters();
   void jointCallback(const sensor_msgs::msg::JointState::SharedPtr msg);
   void twistCallback(const geometry_msgs::msg::Twist::SharedPtr msg);
+  void ref_vel_Callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg);
   void update();
 
   /* ---------- ROS Interfaces ---------- */
@@ -40,6 +41,7 @@ private:
   
   // Inverse Kinematic to publish joint desired velocity
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr ref_twist_sub;
+  rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr ref_velocity_sub;
   rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr desired_joint_velocity_pub;
   
   //500 Hz
@@ -55,6 +57,7 @@ private:
   std::string pose_topic;
   std::string twist_topic;
   std::string urdf_file_name;
+  bool with_redundancy;
 
   /* ===== Pinocchio ===== */
   pinocchio::Model model;
@@ -75,7 +78,14 @@ private:
   Eigen::Vector3d end_eff_desired_velocity;
   Eigen::MatrixXd J;
   Eigen::MatrixXd Jv;
+  Eigen::MatrixXd Jv_pinv;
+  Eigen::MatrixXd N;
+  Eigen::MatrixXd I;
   Eigen::VectorXd desired_joint_velocity_vector;
+  
+  Eigen::VectorXd ref_velocity_vector;
+  
+  bool has_ref_vel;
 };
 
 #endif  // KINEMATIC_CONTROLLER__KinematicController_HPP

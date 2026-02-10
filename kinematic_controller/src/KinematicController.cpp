@@ -15,7 +15,9 @@ KinematicController::KinematicController()
   end_eff_linear_velocity(Eigen::Vector3d::Zero()),
   end_eff_angular_velocity(Eigen::Vector3d::Zero()),
   end_eff_desired_velocity(Eigen::Vector3d::Zero()),
-  desired_joint_velocity_vector(Eigen::VectorXd::Zero(7))
+  desired_joint_velocity_vector(Eigen::VectorXd::Zero(7)),
+  ref_velocity_vector(Eigen::VectorXd::Zero(7)),
+  has_ref_vel(false)
 {
 
   desired_joint_velocity_msg.data.resize(7);
@@ -41,8 +43,11 @@ KinematicController::KinematicController()
   RCLCPP_INFO_STREAM(this->get_logger(),
     "Model nq: " << model.nq << " nv: " << model.nv);
   
-  J.resize(6, model.nv);
+  J.resize(6, model.nv); //need model.nv to initialize matricies.
   Jv.resize(3, model.nv);
+  Jv_pinv.resize(3, model.nv);
+  N.resize(model.nv, model.nv);
+  I = Eigen::MatrixXd::Identity(model.nv, model.nv);
 
 /*---------------PUBLISHER AND SUBSCRIBER---------------*/
 
@@ -64,6 +69,12 @@ KinematicController::KinematicController()
   "gen3/reference/twist", 
   10,
   std::bind(&KinematicController::twistCallback, this, std::placeholders::_1)
+  );
+  
+  ref_velocity_sub = this->create_subscription<std_msgs::msg::Float64MultiArray>(
+  "/gen3/reference/velocity", 
+  10,
+  std::bind(&KinematicController::ref_vel_Callback, this, std::placeholders::_1)
   );
   
   desired_joint_velocity_pub = this->create_publisher<std_msgs::msg::Float64MultiArray>(
@@ -100,6 +111,17 @@ void KinematicController::twistCallback(
 
 
   RCLCPP_INFO_ONCE(this->get_logger(), "First reference twist callback");
+}
+
+void KinematicController::ref_vel_Callback(
+  const std_msgs::msg::Float64MultiArray::SharedPtr msg)
+{
+  for (int i = 0; i < 7; i++) {
+    ref_velocity_vector(i) = msg->data[i];
+  }
+  has_ref_vel = true;
+
+  RCLCPP_INFO_ONCE(this->get_logger(), "First reference velocity callback");
 }
 
 void KinematicController::update( )
@@ -146,8 +168,15 @@ void KinematicController::update( )
   
   Jv = J.topRows(3); //  Jv   <- linear part (rows 0,1,2)
   
-  
   desired_joint_velocity_vector = Jv.completeOrthogonalDecomposition().solve(end_eff_desired_velocity);
+  
+  if(with_redundancy){
+    if (!has_ref_vel) return;
+    Jv_pinv = Jv.completeOrthogonalDecomposition().pseudoInverse();
+    N = I - Jv_pinv * Jv;
+    
+    desired_joint_velocity_vector += N*ref_velocity_vector;
+  }
   
   for(int i = 0; i < 7; i++) {
   desired_joint_velocity_msg.data[i] = desired_joint_velocity_vector(i);
@@ -163,7 +192,7 @@ bool KinematicController::readParameters()
   this->declare_parameter<std::string>("joint_state_topic", "/joint_states");
   this->declare_parameter<std::string>("pose_topic", "/gen3/feedback/pose");
   this->declare_parameter<std::string>("twist_topic", "/gen3/feedback/twist");
-  this->declare_parameter<std::string>("with_redundancy", "false");
+  this->declare_parameter<bool>("with_redundancy", false);
 
   
   /* -------- urdf_file_name -------- */  

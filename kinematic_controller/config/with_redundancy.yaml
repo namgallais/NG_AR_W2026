@@ -1,0 +1,4 @@
+kinematic_controller:
+  ros__parameters:
+    with_redundancy: true
+
