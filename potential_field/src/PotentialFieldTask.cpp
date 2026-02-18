@@ -110,7 +110,7 @@ void PotentialFieldTask::update()
   }
 
   difference = target_pose - current_pose;
-
+/*
   if (difference.norm() < done_threshold) {
     twist_msg.linear.x = 0.0;
     twist_msg.linear.y = 0.0;
@@ -124,7 +124,7 @@ void PotentialFieldTask::update()
     done_pub->publish(done_msg);
     return;
   }
-
+*/
   velocity = k_att * difference;
 
   if (velocity.norm() > maximum_linear_velocity) {

@@ -38,7 +38,7 @@ KinematicController::KinematicController()
   pinocchio::urdf::buildModel(urdf_file_name, model, false);
   data = pinocchio::Data(model);
 
-  HAND_ID = model.getFrameId("end_effector_link");
+  HAND_ID = model.getJointId("bracelet_link") - 1 ;
 
   RCLCPP_INFO_STREAM(this->get_logger(),
     "Model nq: " << model.nq << " nv: " << model.nv);
@@ -131,11 +131,13 @@ void KinematicController::update( )
   if (!has_joint_state)
     return;
   
-  pinocchio::forwardKinematics(model, data, current_joint_state, current_joint_velocity);
-  pinocchio::updateFramePlacements(model, data);
+  pinocchio::computeAllTerms(model, data, current_joint_state, current_joint_velocity) ; // compute all kinematics and dynamics related values
+  pinocchio::getJointJacobian(model, data, HAND_ID, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, J) ; // get jacobian
+	
+
   
   
-  fbk_pose = data.oMf[HAND_ID];
+  fbk_pose = data.oMi[HAND_ID];
   
   end_eff_pose = fbk_pose.translation(); //from pinocchio to eigen
   
