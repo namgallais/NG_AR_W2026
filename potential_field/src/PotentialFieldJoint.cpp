@@ -9,17 +9,10 @@ using namespace std::chrono_literals;
 PotentialFieldJoint::PotentialFieldJoint()
 : Node("potential_field_joint"),
   current_pose(Eigen::VectorXd::Zero(7)),
-  target_pose(Eigen::VectorXd::Zero(7)),
   difference(Eigen::VectorXd::Zero(7)),
   velocity(Eigen::VectorXd::Zero(7)),
-  has_pose(false),
-  has_target(false),
-  all_done(0)
+  has_pose(false)
 {
-
-  done_msg.data = true;
-  velocity_msg.data.resize(7);
-  velocity_msg.data.assign(7, 0.0);
   ref_velocity_msg.data.resize(7);
   ref_velocity_msg.data.assign(7, 0.0);
   
@@ -41,26 +34,11 @@ PotentialFieldJoint::PotentialFieldJoint()
     10,
     std::bind(&PotentialFieldJoint::pose_callback, this, std::placeholders::_1)
   );
-
-  velocity_pub = this->create_publisher<std_msgs::msg::Float64MultiArray>(
-    "/planner/joint_velocity", 10);
-
-  done_pub = this->create_publisher<std_msgs::msg::Bool>(
-    "/planner/done", 10);
     
   ref_velocity_pub = this->create_publisher<std_msgs::msg::Float64MultiArray>(
   "/gen3/reference/velocity", 10);
     
-  homing_service = this->create_service<std_srvs::srv::Trigger>(
-      "/planner/homing",
-      std::bind(
-        &PotentialFieldJoint::homing_callback,
-        this,
-        std::placeholders::_1,
-        std::placeholders::_2
-      )
-    );
-
+    
   timer = this->create_wall_timer(
     2ms,
     std::bind(&PotentialFieldJoint::update, this)
@@ -80,51 +58,12 @@ void PotentialFieldJoint::pose_callback(
   RCLCPP_INFO_ONCE(this->get_logger(), "First pose callback");
 }
 
-void PotentialFieldJoint::homing_callback(
-const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
-  std::shared_ptr<std_srvs::srv::Trigger::Response> response)
-{
-  RCLCPP_INFO_ONCE(this->get_logger(), "First homing_to service callback");
-  
-  target_pose = default_joint_position;
-  has_target = true;
-  
-  RCLCPP_INFO_STREAM_ONCE(this->get_logger(),
-        "target_pose: " << target_pose.transpose());
-  
-  response->success = true;
-  response->message = "Homing started";
-}
-
 void PotentialFieldJoint::update()
 {
 
   RCLCPP_INFO_ONCE(this->get_logger(), "First update");
 
-  if (!has_pose) {
-    velocity_msg.data.assign(7, 0.0);
-    done_msg.data = true;
-
-    velocity_pub->publish(velocity_msg);
-    done_pub->publish(done_msg);
-    return;
-  }
-  
-  ref_velocity_compute(); //compute if has pose
-  
-  if(!has_target){
-    velocity_msg.data.assign(7, 0.0);
-    done_msg.data = true;
-
-    velocity_pub->publish(velocity_msg);
-    done_pub->publish(done_msg);
-    return;
-  }
-  
-  velocity_compute(); //compute if has pose and target
-}
-
-void PotentialFieldJoint::ref_velocity_compute(){
+  if (!has_pose) return;
   
   difference = default_joint_position - current_pose;
   velocity = k_att * difference;
@@ -143,43 +82,7 @@ void PotentialFieldJoint::ref_velocity_compute(){
   }
   
   ref_velocity_pub->publish(ref_velocity_msg);
-}
-
-void PotentialFieldJoint::velocity_compute(){
   
-  difference = target_pose - current_pose;
-  velocity = k_att * difference;
-  all_done = 0;
-  
-  for(int i = 0; i < 7; i++) {
-  
-    if (std::abs(difference(i)) <= done_threshold) {
-      velocity(i) = 0.0;
-      all_done+=1;
-
-    }
-    
-    if (velocity(i) > maximum_joint_velocity(i)) {
-        velocity(i) = maximum_joint_velocity(i);
-    }
-    if (velocity(i) < -maximum_joint_velocity(i)) {
-        velocity(i) = -maximum_joint_velocity(i);
-    }
-    
-    velocity_msg.data[i] = velocity(i);
-    
-  }
-  
-  velocity_pub->publish(velocity_msg);
-  
-  if(all_done == 7){
-      done_msg.data = true;
-      done_pub->publish(done_msg);
-      return;
-  }
-  
-  done_msg.data = false;
-  done_pub->publish(done_msg);
 }
 
 /******************* READ PARAMETERS *************/
@@ -189,7 +92,6 @@ bool PotentialFieldJoint::readParameters()
   std::vector<double> param_list;
 
   this->declare_parameter("k_att", 5.0);
-  this->declare_parameter("done_threshold", 0.05);
   this->declare_parameter("default_joint_position", std::vector<double>{0.0, 0.6, 0.0, 0.6, 0.0, 0.6, 0.0});
   this->declare_parameter("maximum_joint_velocity", std::vector<double>{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
   
@@ -200,16 +102,6 @@ bool PotentialFieldJoint::readParameters()
   } else {
     RCLCPP_ERROR_STREAM(this->get_logger(),
       "Could not get k_att");
-  }
-
-
-  /* -------- done_threshold -------- */
-  if (this->get_parameter("done_threshold", done_threshold)) {
-    RCLCPP_INFO_STREAM(this->get_logger(),
-      "done_threshold = " << done_threshold);
-  } else {
-    RCLCPP_ERROR_STREAM(this->get_logger(),
-      "Could not get done_threshold");
   }
 
 

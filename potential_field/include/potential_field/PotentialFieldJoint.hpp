@@ -18,45 +18,30 @@ private:
   /* ---------- Callbacks ---------- */
   void pose_callback(const sensor_msgs::msg::JointState::SharedPtr msg);
 
-  void homing_callback(
-  const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
-  std::shared_ptr<std_srvs::srv::Trigger::Response> response);
-
   void update();
   
   bool readParameters();
   
   void ref_velocity_compute();
-  void velocity_compute();
 
   /* ---------- ROS Interfaces ---------- */
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr pose_sub;
-  rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr velocity_pub;
-  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr done_pub;
-  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr homing_service;
-  
   rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr ref_velocity_pub;
   
   rclcpp::TimerBase::SharedPtr timer;
 
   /* ---------- Internal State ---------- */
   Eigen::VectorXd current_pose;
-  Eigen::VectorXd target_pose;
   Eigen::VectorXd difference;
   Eigen::VectorXd velocity;
 
   bool has_pose;
-  bool has_target;
-  int all_done;
-  
+
   /*----------- Messages ----------*/
-  std_msgs::msg::Float64MultiArray velocity_msg;
   std_msgs::msg::Float64MultiArray ref_velocity_msg;
-  std_msgs::msg::Bool done_msg;
 
   /* ---------- Parameters ---------- */
   double k_att;
-  double done_threshold;
   Eigen::VectorXd default_joint_position;
   Eigen::VectorXd maximum_joint_velocity;
 };

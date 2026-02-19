@@ -4,4 +4,3 @@ potential_field_joint:
     k_att: 5.0
     default_joint_position: [0.0, 0.6, 0.0, 0.6, 0.0, 0.6, 0.0 ]
     maximum_joint_velocity: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-    done_threshold: 0.0001

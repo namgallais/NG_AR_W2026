@@ -1,7 +1,6 @@
 potential_field_task:
   ros__parameters:
     k_att: 5.0
-    done_threshold: 0.05
     publish_rate: 500
     maximum_linear_velocity: 1.0
     pose_topic: /gen3/feedback/pose

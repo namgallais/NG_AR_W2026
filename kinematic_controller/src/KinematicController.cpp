@@ -46,7 +46,7 @@ KinematicController::KinematicController()
   J.resize(6, model.nq); //need model.nv to initialize matricies.
   Jv.resize(3, model.nq);
   Jv_pinv.resize(3, model.nq);
-  N.resize(model.nv, model.nq);
+  N.resize(model.nq, model.nq);
   I = Eigen::MatrixXd::Identity(model.nq, model.nq);
 
 /*---------------PUBLISHER AND SUBSCRIBER---------------*/
@@ -66,7 +66,7 @@ KinematicController::KinematicController()
 
 // Inverse Kinematic to publish joint desired velocity
   ref_twist_sub = this->create_subscription<geometry_msgs::msg::Twist>(
-  "gen3/reference/twist", 
+  "/gen3/reference/twist", 
   10,
   std::bind(&KinematicController::twistCallback, this, std::placeholders::_1)
   );
@@ -128,8 +128,7 @@ void KinematicController::update( )
 {
   
   //Forward Kinematics
-  if (!has_joint_state)
-    return;
+  if (!has_joint_state) return;
   
   pinocchio::computeAllTerms(model, data, current_joint_state, current_joint_velocity) ; // compute all kinematics and dynamics related values
   pinocchio::getJointJacobian(model, data, HAND_ID, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, J) ; // get jacobian
@@ -139,7 +138,7 @@ void KinematicController::update( )
   
   fbk_pose = data.oMi[HAND_ID];
   
-  end_eff_pose = fbk_pose.translation(); //from return an eigen vector
+  end_eff_pose = fbk_pose.translation(); //return an eigen vector
   
   pose_msg.position.x = end_eff_pose(0);
   pose_msg.position.y = end_eff_pose(1);
@@ -171,7 +170,7 @@ void KinematicController::update( )
     if (!has_ref_vel) return;
     N = I - (Jv_pinv * Jv); // (7*7) + (7*3)*(3*7) = (7*7)
     
-    desired_joint_velocity_vector += N*ref_velocity_vector;
+    desired_joint_velocity_vector = (Jv_pinv * end_eff_desired_velocity) + (N*ref_velocity_vector);
   }
   
   for(int i = 0; i < 7; i++) {

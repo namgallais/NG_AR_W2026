@@ -29,13 +29,11 @@ private:
   /* ---------- ROS Interfaces ---------- */
   rclcpp::Subscription<geometry_msgs::msg::Pose>::SharedPtr pose_sub;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr twist_pub;
-  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr done_pub;
   rclcpp::Service<highlevel_interfaces::srv::Move3d>::SharedPtr move_to_service;
   rclcpp::TimerBase::SharedPtr timer;
   
   /* ---------- Parameters ---------- */
   double k_att;
-  double done_threshold;
   int publish_rate;
   double maximum_linear_velocity;
   std::string pose_topic;

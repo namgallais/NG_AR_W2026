@@ -36,9 +36,6 @@ PotentialFieldTask::PotentialFieldTask()
   twist_pub = this->create_publisher<geometry_msgs::msg::Twist>(
     twist_topic, 10);
 
-  done_pub = this->create_publisher<std_msgs::msg::Bool>(
-    "/planner/done", 10);
-
   move_to_service =
     this->create_service<highlevel_interfaces::srv::Move3d>(
       "/planner/move_to",
@@ -103,28 +100,12 @@ void PotentialFieldTask::update()
     done_msg.data = true;
 
     twist_pub->publish(twist_msg);
-    done_pub->publish(done_msg);
 
     RCLCPP_INFO_ONCE(this->get_logger(), "First update");
     return;
   }
 
   difference = target_pose - current_pose;
-/*
-  if (difference.norm() < done_threshold) {
-    twist_msg.linear.x = 0.0;
-    twist_msg.linear.y = 0.0;
-    twist_msg.linear.z = 0.0;
-    twist_msg.angular.x = 0.0;
-    twist_msg.angular.y = 0.0;
-    twist_msg.angular.z = 0.0;
-    done_msg.data = true;
-
-    twist_pub->publish(twist_msg);
-    done_pub->publish(done_msg);
-    return;
-  }
-*/
   velocity = k_att * difference;
 
   if (velocity.norm() > maximum_linear_velocity) {
@@ -140,14 +121,12 @@ void PotentialFieldTask::update()
   done_msg.data = false;
 
   twist_pub->publish(twist_msg);
-  done_pub->publish(done_msg);
 }
 
 bool PotentialFieldTask::readParameters()
 {
 
   this->declare_parameter("k_att", 5.0);
-  this->declare_parameter("done_threshold", 0.05);
   this->declare_parameter("publish_rate", 500);
   this->declare_parameter("maximum_linear_velocity", 1.0);
   this->declare_parameter<std::string>("pose_topic", "/gen3/feedback/pose"); // Feedback
@@ -161,17 +140,6 @@ bool PotentialFieldTask::readParameters()
     RCLCPP_ERROR_STREAM(this->get_logger(),
       "Could not get k_att");
   }
-
-
-  /* -------- done_threshold -------- */
-  if (this->get_parameter("done_threshold", done_threshold)) {
-    RCLCPP_INFO_STREAM(this->get_logger(),
-      "done_threshold = " << done_threshold);
-  } else {
-    RCLCPP_ERROR_STREAM(this->get_logger(),
-      "Could not get done_threshold");
-  }
-  
   
   /* -------- publish_rate -------- */
   if (this->get_parameter("publish_rate", publish_rate)) {
