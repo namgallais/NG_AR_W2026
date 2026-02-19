@@ -12,8 +12,7 @@ KinematicController::KinematicController()
   current_joint_velocity(Eigen::VectorXd::Zero(7)),
   has_joint_state(false),
   end_eff_pose(Eigen::Vector3d::Zero()),
-  end_eff_linear_velocity(Eigen::Vector3d::Zero()),
-  end_eff_angular_velocity(Eigen::Vector3d::Zero()),
+  fbk_twist(Eigen::VectorXd::Zero(6)),
   end_eff_desired_velocity(Eigen::Vector3d::Zero()),
   desired_joint_velocity_vector(Eigen::VectorXd::Zero(7)),
   ref_velocity_vector(Eigen::VectorXd::Zero(7)),
@@ -22,6 +21,7 @@ KinematicController::KinematicController()
 
   desired_joint_velocity_msg.data.resize(7);
   desired_joint_velocity_msg.data.assign(7, 0.0);
+
 
 /*----------------PARAMETERS----------------*/
 
@@ -43,11 +43,11 @@ KinematicController::KinematicController()
   RCLCPP_INFO_STREAM(this->get_logger(),
     "Model nq: " << model.nq << " nv: " << model.nv);
   
-  J.resize(6, model.nv); //need model.nv to initialize matricies.
-  Jv.resize(3, model.nv);
-  Jv_pinv.resize(3, model.nv);
-  N.resize(model.nv, model.nv);
-  I = Eigen::MatrixXd::Identity(model.nv, model.nv);
+  J.resize(6, model.nq); //need model.nv to initialize matricies.
+  Jv.resize(3, model.nq);
+  Jv_pinv.resize(3, model.nq);
+  N.resize(model.nv, model.nq);
+  I = Eigen::MatrixXd::Identity(model.nq, model.nq);
 
 /*---------------PUBLISHER AND SUBSCRIBER---------------*/
 
@@ -139,34 +139,27 @@ void KinematicController::update( )
   
   fbk_pose = data.oMi[HAND_ID];
   
-  end_eff_pose = fbk_pose.translation(); //from pinocchio to eigen
+  end_eff_pose = fbk_pose.translation(); //from return an eigen vector
   
   pose_msg.position.x = end_eff_pose(0);
   pose_msg.position.y = end_eff_pose(1);
   pose_msg.position.z = end_eff_pose(2);
 
-  fbk_twist = pinocchio::getFrameVelocity(model, data, HAND_ID, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED);
-
-  end_eff_linear_velocity = fbk_twist.linear();
+  fbk_twist = J * current_joint_velocity;
   
-  twist_msg.linear.x = end_eff_linear_velocity(0);
-  twist_msg.linear.y = end_eff_linear_velocity(1);
-  twist_msg.linear.z = end_eff_linear_velocity(2);
-  
-  end_eff_angular_velocity = fbk_twist.angular();
+  twist_msg.linear.x = fbk_twist(0);
+  twist_msg.linear.y = fbk_twist(1);
+  twist_msg.linear.z = fbk_twist(2);
 
-  twist_msg.angular.x = end_eff_angular_velocity(0);
-  twist_msg.angular.y = end_eff_angular_velocity(1);
-  twist_msg.angular.z = end_eff_angular_velocity(2);
+  twist_msg.angular.x = fbk_twist(3);
+  twist_msg.angular.y = fbk_twist(4);
+  twist_msg.angular.z = fbk_twist(5);
 
   pose_pub->publish(pose_msg);
   twist_pub->publish(twist_msg);
   
   
   //Inverse Kinematics
-  
-  pinocchio::computeJointJacobians(model, data, current_joint_state);
-  pinocchio::getFrameJacobian(model, data, HAND_ID, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, J);
   
   Jv = J.topRows(3); //  Jv   <- linear part (rows 0,1,2)
   

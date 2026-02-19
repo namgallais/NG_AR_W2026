@@ -99,14 +99,14 @@ const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
 void PotentialFieldJoint::update()
 {
 
+  RCLCPP_INFO_ONCE(this->get_logger(), "First update");
+
   if (!has_pose) {
     velocity_msg.data.assign(7, 0.0);
     done_msg.data = true;
 
     velocity_pub->publish(velocity_msg);
     done_pub->publish(done_msg);
-
-    RCLCPP_INFO_ONCE(this->get_logger(), "First update");
     return;
   }
   
@@ -195,7 +195,7 @@ bool PotentialFieldJoint::readParameters()
 
   this->declare_parameter("k_att", 5.0);
   this->declare_parameter("done_threshold", 0.05);
-  this->declare_parameter("default_joint_position", std::vector<double>{0.0, 1.54, 0.0, 1.54, 0.0, 1.54, 0.0});
+  this->declare_parameter("default_joint_position", std::vector<double>{0.0, 0.6, 0.0, 0.6, 0.0, 0.6, 0.0});
   this->declare_parameter("maximum_joint_velocity", std::vector<double>{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
   
   /* -------- k_att -------- */  

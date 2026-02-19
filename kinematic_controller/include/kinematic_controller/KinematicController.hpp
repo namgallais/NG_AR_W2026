@@ -72,9 +72,7 @@ private:
   
   pinocchio::SE3 fbk_pose;
   Eigen::Vector3d end_eff_pose;
-  pinocchio::Motion fbk_twist;
-  Eigen::Vector3d end_eff_linear_velocity;
-  Eigen::Vector3d end_eff_angular_velocity;
+  Eigen::VectorXd fbk_twist;
   
   Eigen::Vector3d end_eff_desired_velocity;
   Eigen::MatrixXd J;
