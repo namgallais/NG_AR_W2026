@@ -85,6 +85,9 @@ private:
   Eigen::VectorXd ref_velocity_vector;
   
   bool has_ref_vel;
+  
+  const double lambda = 0.02;
+  const Eigen::Matrix3d I3 = Eigen::Matrix3d::Identity();
 };
 
 #endif  // KINEMATIC_CONTROLLER__KinematicController_HPP

@@ -162,7 +162,11 @@ void KinematicController::update( )
   
   Jv = J.topRows(3); //  Jv   <- linear part (rows 0,1,2) (3*7)
   
-  Jv_pinv =  (Jv.transpose())*((Jv * Jv.transpose()).inverse()); // (7*3) * ( (3*7)*(7*3) ) = (7*3)*(3*3) = (7*3)
+  //Jv_pinv =  (Jv.transpose())*((Jv * Jv.transpose()).inverse()); // (7*3) * ( (3*7)*(7*3) ) = (7*3)*(3*3) = (7*3)
+  
+  /*======*/
+  Jv_pinv = Jv.transpose() * ((Jv * Jv.transpose()) + ((lambda * lambda)*I3)).inverse();
+  /*=====*/
   
   desired_joint_velocity_vector = Jv_pinv * end_eff_desired_velocity; // (7*3) * (3*1) = (7*1)
   
