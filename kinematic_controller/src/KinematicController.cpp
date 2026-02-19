@@ -78,7 +78,7 @@ KinematicController::KinematicController()
   );
   
   desired_joint_velocity_pub = this->create_publisher<std_msgs::msg::Float64MultiArray>(
-  "gen3/command/joint_velocity", 10);
+  "/gen3/command/joint_velocity", 10);
 
 //500 Hz
   timer = this->create_wall_timer(
