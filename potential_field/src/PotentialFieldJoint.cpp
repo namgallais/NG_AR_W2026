@@ -130,12 +130,7 @@ void PotentialFieldJoint::ref_velocity_compute(){
   velocity = k_att * difference;
   
   for(int i = 0; i < 7; i++) {
-  /*
-    if (std::abs(difference(i)) <= done_threshold) {
-      velocity(i) = 0.0;
-
-    }
-    */
+  
     if (velocity(i) > maximum_joint_velocity(i)) {
         velocity(i) = maximum_joint_velocity(i);
     }
@@ -157,13 +152,13 @@ void PotentialFieldJoint::velocity_compute(){
   all_done = 0;
   
   for(int i = 0; i < 7; i++) {
-  /*
+  
     if (std::abs(difference(i)) <= done_threshold) {
       velocity(i) = 0.0;
       all_done+=1;
 
     }
-    */
+    
     if (velocity(i) > maximum_joint_velocity(i)) {
         velocity(i) = maximum_joint_velocity(i);
     }

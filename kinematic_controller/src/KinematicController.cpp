@@ -161,14 +161,15 @@ void KinematicController::update( )
   
   //Inverse Kinematics
   
-  Jv = J.topRows(3); //  Jv   <- linear part (rows 0,1,2)
+  Jv = J.topRows(3); //  Jv   <- linear part (rows 0,1,2) (3*7)
   
-  desired_joint_velocity_vector = Jv.completeOrthogonalDecomposition().solve(end_eff_desired_velocity);
+  Jv_pinv =  (Jv.transpose())*((Jv * Jv.transpose()).inverse()); // (7*3) * ( (3*7)*(7*3) ) = (7*3)*(3*3) = (7*3)
+  
+  desired_joint_velocity_vector = Jv_pinv * end_eff_desired_velocity; // (7*3) * (3*1) = (7*1)
   
   if(with_redundancy){
     if (!has_ref_vel) return;
-    Jv_pinv = Jv.completeOrthogonalDecomposition().pseudoInverse();
-    N = I - Jv_pinv * Jv;
+    N = I - (Jv_pinv * Jv); // (7*7) + (7*3)*(3*7) = (7*7)
     
     desired_joint_velocity_vector += N*ref_velocity_vector;
   }
