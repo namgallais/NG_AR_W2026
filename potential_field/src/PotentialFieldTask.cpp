@@ -9,9 +9,10 @@ using namespace std::chrono_literals;
 PotentialFieldTask::PotentialFieldTask()
 : Node("potential_field_task"),
   current_pose(Eigen::Vector3d::Zero()),
-  target_pose(Eigen::Vector3d::Zero()),
+  target_pose(Eigen::Vector3d(0.5, 0.2, 0.5)), //A5 requierment
   difference(Eigen::Vector3d::Zero()),
   velocity(Eigen::Vector3d::Zero()),
+  ref_pose(Eigen::Vector3d::Zero()),
   has_pose(false),
   has_target(false)
 {
@@ -35,6 +36,9 @@ PotentialFieldTask::PotentialFieldTask()
 
   twist_pub = this->create_publisher<geometry_msgs::msg::Twist>(
     twist_topic, 10);
+    
+  ref_pose_pub = this->create_publisher<geometry_msgs::msg::Pose>(
+    "/gen3/reference/pose", 10);
 
   move_to_service =
     this->create_service<highlevel_interfaces::srv::Move3d>(
@@ -90,7 +94,7 @@ void PotentialFieldTask::move_to_callback(
 void PotentialFieldTask::update()
 {
   
-  if (!has_pose || !has_target) {
+  if (!has_pose) {
     twist_msg.linear.x = 0.0;
     twist_msg.linear.y = 0.0;
     twist_msg.linear.z = 0.0;
@@ -121,6 +125,17 @@ void PotentialFieldTask::update()
   done_msg.data = false;
 
   twist_pub->publish(twist_msg);
+  
+  // Ref_pose calculation
+  
+  ref_pose = current_pose + velocity * dt;
+  
+  ref_pose_msg.position.x = ref_pose(0);
+  ref_pose_msg.position.y = ref_pose(1);
+  ref_pose_msg.position.z = ref_pose(2);
+  
+  ref_pose_pub->publish(ref_pose_msg);
+  
 }
 
 bool PotentialFieldTask::readParameters()

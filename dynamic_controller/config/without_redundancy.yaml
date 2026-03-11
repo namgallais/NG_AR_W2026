@@ -1,0 +1,8 @@
+kinematic_controller:
+  ros__parameters:
+    with_redundancy: false
+    linear_k: 0.1
+    linear_d: 0.1
+    joint_k: 0.1
+    joint_d: 0.1
+

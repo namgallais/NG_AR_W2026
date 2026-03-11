@@ -11,10 +11,14 @@ PotentialFieldJoint::PotentialFieldJoint()
   current_pose(Eigen::VectorXd::Zero(7)),
   difference(Eigen::VectorXd::Zero(7)),
   velocity(Eigen::VectorXd::Zero(7)),
+  ref_pose(Eigen::VectorXd::Zero(7)),
   has_pose(false)
 {
   ref_velocity_msg.data.resize(7);
   ref_velocity_msg.data.assign(7, 0.0);
+  
+  ref_pose_msg.data.resize(7);
+  ref_pose_msg.data.assign(7, 0.0);
   
   /************PARAMETERS***************/
   
@@ -37,6 +41,9 @@ PotentialFieldJoint::PotentialFieldJoint()
     
   ref_velocity_pub = this->create_publisher<std_msgs::msg::Float64MultiArray>(
   "/gen3/reference/velocity", 10);
+  
+  ref_pose_pub = this->create_publisher<std_msgs::msg::Float64MultiArray>(
+  "/gen3/reference/position", 10);
     
     
   timer = this->create_wall_timer(
@@ -79,9 +86,13 @@ void PotentialFieldJoint::update()
     
     ref_velocity_msg.data[i] = velocity(i);
     
+    ref_pose(i) = current_pose(i) + velocity(i) * dt;
+    
+    ref_pose_msg.data[i] = ref_pose(i);
   }
-  
+    
   ref_velocity_pub->publish(ref_velocity_msg);
+  ref_pose_pub->publish(ref_pose_msg);
   
 }
 

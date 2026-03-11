@@ -27,6 +27,7 @@ private:
   /* ---------- ROS Interfaces ---------- */
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr pose_sub;
   rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr ref_velocity_pub;
+  rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr ref_pose_pub;
   
   rclcpp::TimerBase::SharedPtr timer;
 
@@ -34,11 +35,15 @@ private:
   Eigen::VectorXd current_pose;
   Eigen::VectorXd difference;
   Eigen::VectorXd velocity;
+  Eigen::VectorXd ref_pose;
 
   bool has_pose;
+  
+  double const dt = 0.002;
 
   /*----------- Messages ----------*/
   std_msgs::msg::Float64MultiArray ref_velocity_msg;
+  std_msgs::msg::Float64MultiArray ref_pose_msg;
 
   /* ---------- Parameters ---------- */
   double k_att;
