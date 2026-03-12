@@ -1,21 +1,32 @@
 from launch import LaunchDescription
+from launch import actions
 from launch_ros.actions import Node
-from launch.actions import IncludeLaunchDescription
-from launch.launch_description_sources import AnyLaunchDescriptionSource
+from launch_ros.substitutions import FindPackageShare
+from launch.substitutions import PathJoinSubstitution
 from ament_index_python.packages import get_package_share_directory
+import launch
+import launch_xml
 import os
-
 
 def generate_launch_description():
 
-    kortex_description_path = get_package_share_directory('kortex_description')
-    dynamic_controller_path = get_package_share_directory('dynamic_controller')
-    potential_field_path = get_package_share_directory('potential_field')
+    urdf_file = PathJoinSubstitution([
+        FindPackageShare('kortex_description'),
+        'robots',
+        'gen3.urdf'
+    ])
 
-    urdf_file = os.path.join(kortex_description_path, 'robots', 'gen3.urdf')
-    config_file = os.path.join(dynamic_controller_path, 'config', 'without_redundancy.yaml')
-    potential_field_launch = os.path.join(potential_field_path, 'launch', 'potential_field_task.launch.xml')
+    # Use os.path for YAML config — parameters[] needs a resolved string, not a substitution
+    config_path = os.path.join(
+        get_package_share_directory('dynamic_controller'),
+        'config',
+        'without_redundancy.yaml'
+    )
 
+    potential_field_path = [
+        FindPackageShare('potential_field'),
+        '/launch/potential_field_task.launch.xml'
+    ]
 
     dynamic_controller_node = Node(
         package='dynamic_controller',
@@ -25,17 +36,17 @@ def generate_launch_description():
         parameters=[
             {'urdf_file_name': urdf_file},
             {'use_sim_time': True},
-            config_file
+            config_path
         ]
     )
 
-
-    potential_field = IncludeLaunchDescription(
-        AnyLaunchDescriptionSource(potential_field_launch)
+    potential_field = launch.actions.IncludeLaunchDescription(
+        launch_xml.launch_description_sources.XMLLaunchDescriptionSource(
+            potential_field_path
+        )
     )
 
-
-    return LaunchDescription([
-        dynamic_controller_node,
-        potential_field
-    ])
+    ld = LaunchDescription()
+    ld.add_action(dynamic_controller_node)
+    ld.add_action(potential_field)
+    return ld

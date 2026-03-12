@@ -95,7 +95,7 @@ void PotentialFieldTask::update()
 {
   
   if (!has_pose) {
-    twist_msg.linear.x = 0.0;
+    /*twist_msg.linear.x = 0.0;
     twist_msg.linear.y = 0.0;
     twist_msg.linear.z = 0.0;
     twist_msg.angular.x = 0.0;
@@ -104,8 +104,8 @@ void PotentialFieldTask::update()
     done_msg.data = true;
 
     twist_pub->publish(twist_msg);
-
-    RCLCPP_INFO_ONCE(this->get_logger(), "First update");
+*/
+    RCLCPP_INFO_ONCE(this->get_logger(), "First update w/o pose");
     return;
   }
 
@@ -136,6 +136,7 @@ void PotentialFieldTask::update()
   
   ref_pose_pub->publish(ref_pose_msg);
   
+  RCLCPP_INFO_ONCE(this->get_logger(), "First update with pose");
 }
 
 bool PotentialFieldTask::readParameters()

@@ -62,7 +62,7 @@ DynamicController::DynamicController()
   dim_joints   = model.nq ;
 
   J	  = Eigen::MatrixXd::Zero(6, dim_joints) ;
-  J_dot = Eigen::MatrixXd::Zero(6, dim_joints) ;
+  J_dot   = Eigen::MatrixXd::Zero(6, dim_joints) ;
   M  		  = Eigen::MatrixXd::Identity(dim_joints,dim_joints) ;
   h 			  = Eigen::VectorXd::Zero(dim_joints) ;
 
@@ -151,7 +151,7 @@ DynamicController::DynamicController()
     std::bind(&DynamicController::update, this)
   );
 
-  RCLCPP_INFO(this->get_logger(), "Potential field planner started");
+  RCLCPP_INFO(this->get_logger(), "Dynamic controller started");
 }
 
 /* ================= CALLBACKS ================= */
@@ -175,7 +175,7 @@ void DynamicController::ref_position_Callback(
   }
   has_ref_position = true;
 
-  RCLCPP_INFO_ONCE(this->get_logger(), "First joint state callback");
+  RCLCPP_INFO_ONCE(this->get_logger(), "First ref_position_Callback");
 }
 
 void DynamicController::ref_velocity_Callback(
@@ -186,7 +186,7 @@ void DynamicController::ref_velocity_Callback(
   }
   has_ref_velocity = true;
 
-  RCLCPP_INFO_ONCE(this->get_logger(), "First reference velocity callback");
+  RCLCPP_INFO_ONCE(this->get_logger(), "First ref_velocity_Callback");
 }
 
 
@@ -200,7 +200,7 @@ void DynamicController::ref_pose_Callback(
   
   has_ref_pose = true;
 
-  RCLCPP_INFO_ONCE(this->get_logger(), "First joint state callback");
+  RCLCPP_INFO_ONCE(this->get_logger(), "ref_pose_Callback");
 }
 
 void DynamicController::ref_twist_Callback(
@@ -241,6 +241,10 @@ void DynamicController::set_joint_kd_callback(
   response->success = true;
 }
 
+
+/* ================= UPDATE ================= */
+
+
 void DynamicController::update( )
 {
 
@@ -254,14 +258,17 @@ void DynamicController::update( )
   M 				= data.M ; 	// mass matrix
   h 				= data.nle ;	// coriolis, centrifugal, and gravity
    
-  RCLCPP_INFO_STREAM(this ->get_logger(), "fbk_q_position " << fbk_q_position.transpose() ) ;
-  RCLCPP_INFO_STREAM(this ->get_logger(), "fbk_q_velocity " << fbk_q_velocity.transpose() ) ;
-  RCLCPP_INFO_STREAM(this ->get_logger(), "M " << M ) ;
-  RCLCPP_INFO_STREAM(this ->get_logger(), "h " << h.transpose() ) ;
-  RCLCPP_INFO_STREAM(this ->get_logger(), "J " << J ) ;
-  RCLCPP_INFO_STREAM(this ->get_logger(), "J_dot " << J_dot ) ;
+  /*
+  RCLCPP_INFO_STREAM_ONCE(this ->get_logger(), "fbk_q_position " << fbk_q_position.transpose() ) ;
+  RCLCPP_INFO_STREAM_ONCE(this ->get_logger(), "fbk_q_velocity " << fbk_q_velocity.transpose() ) ;
+  RCLCPP_INFO_STREAM_ONCE(this ->get_logger(), "M " << M ) ;
+  RCLCPP_INFO_STREAM_ONCE(this ->get_logger(), "h " << h.transpose() ) ;
+  RCLCPP_INFO_STREAM_ONCE(this ->get_logger(), "J " << J ) ;
+  RCLCPP_INFO_STREAM_ONCE(this ->get_logger(), "J_dot " << J_dot ) ;
+  */
   
   // Lambda and eta computation
+  
   Jv = J.topRows(3);
   Jv_dot = J_dot.topRows(3);
   
