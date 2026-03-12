@@ -134,6 +134,8 @@ void set_joint_kd_callback(
   Eigen::MatrixXd I;
   
   Eigen::Vector3d ddx_cmd;
+  
+  Eigen::VectorXd ddq_cmd;
 
   Eigen::VectorXd tau_cmd;
   

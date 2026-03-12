@@ -27,6 +27,8 @@ DynamicController::DynamicController()
   eta(Eigen::Vector3d::Zero()),
   
   ddx_cmd(Eigen::Vector3d::Zero()),
+  
+  ddq_cmd(Eigen::VectorXd::Zero(7)),
 
   tau_cmd(Eigen::VectorXd::Zero(7)),
 
@@ -274,7 +276,7 @@ void DynamicController::update( )
   
   Lambda = (Jv * M.inverse() * Jv.transpose()).inverse();
   Jv_pinv = (Jv.transpose())*((Jv * Jv.transpose()).inverse());
-  eta = (Jv_pinv.transpose()) * h - Lambda * Jv_dot * ref_q_velocity;
+  eta = (Jv_pinv.transpose()) * h - Lambda * Jv_dot * fbk_q_velocity;
 
 
   //Foward Kinematic to figure out x_fbk and dx_fbk
@@ -289,14 +291,16 @@ void DynamicController::update( )
   // Calculation of tau_cmd
   
   tau_cmd = (Jv.transpose()) * (Lambda * ddx_cmd + eta);
-  /*
+  
   if(with_redundancy){
     if (!has_ref_velocity) return;
     P = I - Jv.transpose()*Lambda*Jv*M.inverse();
     
-    tau_cmd += (P*ref_q_velocity);
+    ddq_cmd = joint_d*(ref_q_velocity - fbk_q_velocity) + joint_k*(ref_q_position - fbk_q_position);
+    
+    tau_cmd += P*(M*ddq_cmd + h);
   }
-  */
+
   // Publishing
   pose_msg.position.x = x_fbk(0);
   pose_msg.position.y = x_fbk(1);
