@@ -2,7 +2,7 @@ dynamic_controller:
   ros__parameters:
     with_redundancy: false
     linear_k: 50.0
-    linear_d: 10.0
+    linear_d: 15.0
     joint_k: 100.0
     joint_d: 20.0
 
