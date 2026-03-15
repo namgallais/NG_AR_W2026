@@ -20,7 +20,7 @@ def generate_launch_description():
     config_path = os.path.join(
         get_package_share_directory('dynamic_controller'),
         'config',
-        'without_redundancy.yaml'
+        'with_redundancy.yaml'
     )
 
     potential_field_task_path = [

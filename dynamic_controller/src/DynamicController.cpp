@@ -298,7 +298,7 @@ void DynamicController::update( )
     
     ddq_cmd = joint_d*(ref_q_velocity - fbk_q_velocity) + joint_k*(ref_q_position - fbk_q_position);
     
-    tau_cmd = (Jv.transpose())*(Lambda * ddx_cmd + eta) + P*(M*ddq_cmd + h);
+    tau_cmd += P*(M*ddq_cmd + h);
   }
 
   // Publishing
