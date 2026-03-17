@@ -274,10 +274,9 @@ void DynamicController::update( )
   Jv = J.topRows(3);
   Jv_dot = J_dot.topRows(3);
   
-  Lambda = (Jv * M.inverse() * Jv.transpose()).inverse();
+  Lambda = (Jv * (M.inverse()) * (Jv.transpose())).inverse();
   Jv_pinv = (Jv.transpose())*((Jv * Jv.transpose()).inverse());
   eta = (Jv_pinv.transpose()) * h - Lambda * Jv_dot * fbk_q_velocity;
-
 
   //Foward Kinematic to figure out x_fbk and dx_fbk
   
@@ -294,11 +293,13 @@ void DynamicController::update( )
   
   if(with_redundancy){
     if (!has_ref_velocity) return;
-    P = I - Jv.transpose()*Lambda*Jv*M.inverse();
+    P = I - (Jv.transpose())*Lambda*Jv*(M.inverse());
+    
+    //P = I - (J.transpose())*((J * (M.inverse()) * (J.transpose())).inverse())*J*(M.inverse());
     
     ddq_cmd = joint_d*(ref_q_velocity - fbk_q_velocity) + joint_k*(ref_q_position - fbk_q_position);
     
-    tau_cmd += P*(M*ddq_cmd + h);
+    tau_cmd += (P.transpose())*(M*ddq_cmd + h);
   }
 
   // Publishing
@@ -324,6 +325,7 @@ void DynamicController::update( )
   desired_joint_effort_msg.data[i] = tau_cmd(i);
   }
  desired_joint_effort_pub->publish(desired_joint_effort_msg);
+ 
 }
 
 
