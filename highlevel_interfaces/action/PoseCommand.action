@@ -1,0 +1,19 @@
+# define the goal (Target pose and orientation)
+float64 x 
+float64 y
+float64 z
+float64 roll
+float64 pitch
+float64 yaw
+---
+# define the result
+bool success
+string message
+---
+# define a feedback message
+#the Euclidean distance between the feedback and the target translation
+float64 distance_translation 
+#the shortest angle between the feedback and the target orientation
+float64 distance_orientation
+#the time elapsed since the action request is accepted
+float64 time_elapsed

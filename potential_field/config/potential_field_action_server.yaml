@@ -1,0 +1,6 @@
+potential_field_task:
+  ros__parameters:
+    k_att: 5.0
+    k_att_ang: 5.0
+    publish_rate: 500
+    maximum_linear_velocity: 1.0

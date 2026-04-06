@@ -19,6 +19,7 @@
 #include "std_msgs/msg/float64_multi_array.hpp"
 
 #include <Eigen/Dense>
+#include <Eigen/Geometry> 
 
 class KinematicController : public rclcpp::Node
 {
@@ -71,7 +72,9 @@ private:
   bool has_joint_state;
   
   pinocchio::SE3 fbk_pose;
-  Eigen::Vector3d end_eff_pose;
+  Eigen::Vector3d x_fbk;
+  Eigen::Matrix3d rotation_fbk;
+  Eigen::Quaterniond gamma;
   Eigen::VectorXd fbk_twist;
   
   Eigen::Vector3d end_eff_desired_velocity;

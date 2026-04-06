@@ -11,6 +11,7 @@ find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(rclcpp_action REQUIRED)
 find_package(highlevel_interfaces REQUIRED)
 find_package(Eigen3 REQUIRED)
 
@@ -29,6 +30,11 @@ add_executable(potential_field_task
   src/PotentialFieldTask.cpp
 )
 
+add_executable(potential_field_action_server
+  src/potential_field_action_server.cpp
+  src/PotentialFieldActionServer.cpp
+)
+
 
 target_include_directories(potential_field_2d PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -41,6 +47,11 @@ target_include_directories(potential_field_joint PUBLIC
 )
 
 target_include_directories(potential_field_task PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+target_include_directories(potential_field_action_server PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
@@ -66,6 +77,14 @@ ament_target_dependencies(potential_field_task
   highlevel_interfaces
 )
 
+ament_target_dependencies(potential_field_action_server
+  rclcpp
+  rclcpp_action
+  std_msgs
+  geometry_msgs
+  highlevel_interfaces
+)
+
 target_link_libraries(potential_field_2d
   Eigen3::Eigen
 )
@@ -78,6 +97,10 @@ target_link_libraries(potential_field_task
   Eigen3::Eigen
 )
 
+target_link_libraries(potential_field_action_server
+  Eigen3::Eigen
+)
+
 install(TARGETS potential_field_2d
   DESTINATION lib/${PROJECT_NAME}
 )
@@ -87,6 +110,10 @@ install(TARGETS potential_field_joint
 )
 
 install(TARGETS potential_field_task
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(TARGETS potential_field_action_server
   DESTINATION lib/${PROJECT_NAME}
 )
 

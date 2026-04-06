@@ -11,7 +11,9 @@ KinematicController::KinematicController()
   current_joint_state(Eigen::VectorXd::Zero(7)),
   current_joint_velocity(Eigen::VectorXd::Zero(7)),
   has_joint_state(false),
-  end_eff_pose(Eigen::Vector3d::Zero()),
+  x_fbk(Eigen::Vector3d::Zero()),
+  rotation_fbk(Eigen::Matrix3d::Zero()),
+  gamma(Eigen::Quaterniond::Identity()),
   fbk_twist(Eigen::VectorXd::Zero(6)),
   end_eff_desired_velocity(Eigen::Vector3d::Zero()),
   desired_joint_velocity_vector(Eigen::VectorXd::Zero(7)),
@@ -138,11 +140,18 @@ void KinematicController::update( )
   
   fbk_pose = data.oMi[HAND_ID];
   
-  end_eff_pose = fbk_pose.translation(); //return an eigen vector
+  x_fbk = fbk_pose.translation(); //return an eigen vector
+  rotation_fbk = fbk_pose.rotation();
   
-  pose_msg.position.x = end_eff_pose(0);
-  pose_msg.position.y = end_eff_pose(1);
-  pose_msg.position.z = end_eff_pose(2);
+  pinocchio::quaternion::assignQuaternion(gamma, rotation_fbk);	
+  
+  pose_msg.position.x = x_fbk(0);
+  pose_msg.position.y = x_fbk(1);
+  pose_msg.position.z = x_fbk(2);
+  pose_msg.orientation.w = gamma.w();
+  pose_msg.orientation.x = gamma.x();
+  pose_msg.orientation.y = gamma.y();
+  pose_msg.orientation.z = gamma.z();
 
   fbk_twist = J * current_joint_velocity;
   

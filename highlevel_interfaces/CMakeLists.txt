@@ -15,6 +15,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/Move2d.srv"
   "srv/Move3d.srv"
   "srv/SetKD.srv"
+  "action/PoseCommand.action"
 )
 
 # Export runtime so other packages can use the types

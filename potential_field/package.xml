@@ -14,7 +14,7 @@ href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://w
   <depend>rclcpp</depend>
   <depend>std_msgs</depend>
   <depend>geometry_msgs</depend>
-
+  <depend>rclcpp_action</depend>
   <depend>highlevel_interfaces</depend>
 
   <export>
