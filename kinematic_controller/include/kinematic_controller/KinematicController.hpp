@@ -60,6 +60,7 @@ private:
   std::string twist_topic;
   std::string urdf_file_name;
   bool with_redundancy;
+  bool control_orientation;
 
   /* ===== Pinocchio ===== */
   pinocchio::Model model;
@@ -74,11 +75,12 @@ private:
   pinocchio::SE3 fbk_pose;
   Eigen::Vector3d x_fbk;
   Eigen::Matrix3d rotation_fbk;
-  Eigen::Quaterniond gamma;
+  Eigen::Quaterniond quat_fbk;
   Eigen::VectorXd fbk_twist;
   
-  Eigen::Vector3d end_eff_desired_velocity;
+  Eigen::VectorXd end_eff_desired_velocity;
   Eigen::MatrixXd J;
+  Eigen::MatrixXd J_pinv;
   Eigen::MatrixXd Jv;
   Eigen::MatrixXd Jv_pinv;
   Eigen::MatrixXd N;
@@ -91,6 +93,7 @@ private:
   
   const double lambda = 0.02;
   const Eigen::Matrix3d I3 = Eigen::Matrix3d::Identity();
+  const Eigen::MatrixXd I6 = Eigen::MatrixXd::Identity(6,6);
 };
 
 #endif  // KINEMATIC_CONTROLLER__KinematicController_HPP
