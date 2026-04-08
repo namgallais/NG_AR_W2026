@@ -122,6 +122,9 @@ void PotentialFieldActionServer::update()
 
   ang_vel = sign * k_att_ang * angle_axis.angle() * angle_axis.axis() ;
 
+  if (ang_vel.norm() > maximum_linear_velocity) {
+    ang_vel = (ang_vel / ang_vel.norm()) * maximum_linear_velocity;
+  }
 
   twist_msg.linear.x = velocity(0);
   twist_msg.linear.y = velocity(1);
