@@ -12,8 +12,9 @@ PotentialFieldActionServer::PotentialFieldActionServer()
   target_pose(Eigen::Vector3d(0.5, 0.2, 0.5)), //A5 requierment
   difference(Eigen::Vector3d::Zero()),
   velocity(Eigen::Vector3d::Zero()),
+  ang_vel(Eigen::Vector3d::Zero()),
   has_pose(false),
-  has_target(false),
+  has_target(true),
   duration(0.0),
   dist_translation(0.0),
   dist_orientation(0.0),
@@ -103,6 +104,11 @@ void PotentialFieldActionServer::update()
   }
   
   //angular velocity
+  
+  if (!has_target) {
+    RCLCPP_INFO_ONCE(this->get_logger(), "No target");
+    return;
+  }
 
   quat_diff   = quat_tar * quat_fbk.conjugate();
   angle_axis  = quat_diff ;
@@ -185,7 +191,7 @@ bool PotentialFieldActionServer::readParameters()
 rclcpp_action::GoalResponse PotentialFieldActionServer::handle_goal(const rclcpp_action::GoalUUID & uuid, 
     [[maybe_unused]] std::shared_ptr<const PoseCommandAction::Goal> goal) {
 
-    RCLCPP_INFO(this->get_logger(), "Received goal request for a timed rotation action");
+    RCLCPP_INFO(this->get_logger(), "Received goal request");
     (void)uuid;
 	
   // Check each field individually by name
@@ -227,10 +233,12 @@ void PotentialFieldActionServer::execute_action(
     target_pose(2) = goal_handle->get_goal()->z;
     // (also store target orientation for error calculation)
     
+    has_target = false;
     quat_tar =
   Eigen::AngleAxisd(goal_handle->get_goal()->yaw, Eigen::Vector3d::UnitZ()) 
 * Eigen::AngleAxisd(goal_handle->get_goal()->pitch, Eigen::Vector3d::UnitY()) 
 * Eigen::AngleAxisd(goal_handle->get_goal()->roll, Eigen::Vector3d::UnitX());
+    has_target = true;
 
     rclcpp::Time start_time = this->now();
 
