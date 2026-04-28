@@ -269,7 +269,7 @@ void PotentialFieldActionServer::execute_action(
             return;
         }
 
-        if (duration > 5.0) {
+        if (duration > 10.0) {
             pose_command_response_->success = false;
             pose_command_response_->message = "Timeout";
             goal_handle->abort(pose_command_response_);

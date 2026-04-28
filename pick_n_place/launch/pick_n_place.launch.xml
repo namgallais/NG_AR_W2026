@@ -1,0 +1,15 @@
+<launch>
+
+  <node pkg="pick_n_place"
+        exec="pick_n_place"
+        name="pick_n_place"
+        output="screen">
+
+
+    <param from="$(find-pkg-share pick_n_place)/config/pick_n_place.yaml"/>
+
+    <param name="use_sim_time" value="true"/>
+
+  </node>
+
+</launch>

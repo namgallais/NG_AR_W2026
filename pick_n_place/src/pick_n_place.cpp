@@ -2,7 +2,11 @@
 
 int main(int argc, char * argv[]) {
     rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<PickNPlace>());
-    rclcpp::shutdown();
-    return 0;
+    std::shared_ptr<PickNPlace> node_handle = std::make_shared<PickNPlace>();
+    
+	node_handle->run() ;
+		
+	rclcpp::shutdown();
+	return 0;
+
 }
