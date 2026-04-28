@@ -131,7 +131,7 @@ void PickNPlace::run() {
 		RCLCPP_INFO_STREAM(logger_, "\n\nSent pose and gripper action goal idx " << idx ) ;
 		
 		idx = next_vec[idx];
-		rclcpp::sleep_for(std::chrono::seconds(1)); //to be sure it stabilizes before moving to the next action
+		rclcpp::sleep_for(std::chrono::milliseconds(500)); //to be sure it stabilizes before moving to the next action
 		
 		
 	}
