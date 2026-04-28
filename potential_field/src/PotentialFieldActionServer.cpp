@@ -9,7 +9,7 @@ using namespace std::chrono_literals;
 PotentialFieldActionServer::PotentialFieldActionServer()
 : Node("potential_field_action_server"),
   current_pose(Eigen::Vector3d::Zero()),
-  target_pose(Eigen::Vector3d(0.5, 0.2, 0.5)), //A5 requierment
+  target_pose(Eigen::Vector3d(0.5, 0.0, 0.7)), //A5 requierment
   difference(Eigen::Vector3d::Zero()),
   velocity(Eigen::Vector3d::Zero()),
   ang_vel(Eigen::Vector3d::Zero()),
@@ -287,7 +287,7 @@ rclcpp_action::CancelResponse PotentialFieldActionServer::handle_cancel(
     (void)goal_handle;
     
     // reset to default pose
-    target_pose = Eigen::Vector3d(0.5, 0.2, 0.5);
+    target_pose = Eigen::Vector3d(0.5, 0.0, 0.7);
     
     return rclcpp_action::CancelResponse::ACCEPT;
 }

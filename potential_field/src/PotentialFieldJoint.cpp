@@ -59,7 +59,9 @@ PotentialFieldJoint::PotentialFieldJoint()
 void PotentialFieldJoint::pose_callback(
   const sensor_msgs::msg::JointState::SharedPtr msg)
 {  
-  current_pose = Eigen::Map<Eigen::VectorXd>(msg->position.data(), msg->position.size());
+  for (int i = 0; i < 7; i++) {
+        current_pose(i)    = msg->position[i];   
+    }
   has_pose = true;
 
   RCLCPP_INFO_ONCE(this->get_logger(), "First pose callback");

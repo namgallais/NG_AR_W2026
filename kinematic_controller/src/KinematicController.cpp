@@ -97,8 +97,10 @@ KinematicController::KinematicController()
 void KinematicController::jointCallback(
   const sensor_msgs::msg::JointState::SharedPtr msg)
 {
-  current_joint_state = Eigen::Map<Eigen::VectorXd>(msg->position.data(), msg->position.size());
-  current_joint_velocity = Eigen::Map<Eigen::VectorXd>(msg->velocity.data(), msg->velocity.size());
+  for (int i = 0; i < 7; i++) {
+        current_joint_state(i)    = msg->position[i];
+        current_joint_velocity(i) = msg->velocity[i];
+    }
   has_joint_state = true;
 
   RCLCPP_INFO_ONCE(this->get_logger(), "First joint state callback");
