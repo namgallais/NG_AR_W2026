@@ -16,6 +16,7 @@
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>launch_xml</exec_depend>
   <exec_depend>kinematic_controller</exec_depend>
+  <exec_depend>pick_n_place</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
